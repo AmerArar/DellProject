@@ -41,9 +41,9 @@ def setup_config():
         isSummary=False,
 
         #  ESXi host/IP, root login & password
-       ## HOST="192.168.75.128",
-       # USER="root",
-       # PASSWORD="12345678",
+        HOST="192.168.174.139",
+        USER="root",
+        PASSWORD="Amer2020@",
         KEY="",
         #stractConnection=True,
 
@@ -130,7 +130,10 @@ def float2human(num):
 
 #      Defaults and Variable setup
 ConfigData = setup_config()
-NAME = "vm1"
+ConfigData['HOST']='192.168.174.139'
+ConfigData['USER']='root'
+ConfigData['PASSWORD']='Amer2020@'
+NAME = "vm11"
 LOG = ConfigData['LOG']
 isDryRun = ConfigData['isDryRun']
 isVerbose = ConfigData['isVerbose']
