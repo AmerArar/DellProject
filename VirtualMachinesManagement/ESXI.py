@@ -16,7 +16,7 @@ class ManageESXI:
             stats = summary.quickStats
             hardware = host.hardware
             cpuUsage = stats.overallCpuUsage
-            if(((hardware.cpuInfo.hz / 1000000)-(cpuUsage/1000))<rcpu):
+            if(((hardware.cpuInfo.hz / 1000000)-(cpuUsage/1000))<rcpu):#TODO
                 #Calculate the CPU number available for this host
                 return False
             memoryCapacityInMB = hardware.memorySize / MBFACTOR
@@ -60,65 +60,45 @@ class ManageESXI:
 
         return obj
 
-    def Delete(self,vm, content):
-        if isinstance(vm, str):
-            vm = self.GetObj(content, [vim.VirtualMachine], vm)
-        if (vm == None):
-            print("There is no machine with that name")
+    def DeleteVM(self,si, vmip):
+        # delete vm from esxi
+        VM = None
+        VM = si.content.searchIndex.FindByIp(None, vmip, True)
+        if VM == None:
+            raise SystemExit("Unable to locate VirtualMachine.")
             return False
+
         else:
-            print("Found: {0}".format(vm.name))
-            print("The current powerState is: {0}".format(vm.runtime.powerState))
-            if format(vm.runtime.powerState) == "poweredOn":
-                print("Attempting to power off {0}".format(vm.name))
-                TASK = vm.PowerOffVM_Task()
-                # wait_for_tasks( [TASK])
+            print("Found: {0}".format(VM.name))
+            print("The current powerState is: {0}".format(VM.runtime.powerState))
+            if format(VM.runtime.powerState) == "poweredOn":
+                print("Attempting to power off {0}".format(VM.name))
+                TASK = VM.PowerOffVM_Task()
+                tasks.wait_for_tasks(si, [TASK])
                 print("{0}".format(TASK.info.state))
 
             print("Destroying VM from vSphere.")
-            vm.Destroy_Task()
-            # wait_for_tasks( [TASK])
+            TASK = VM.Destroy_Task()
+            tasks.wait_for_tasks(si, [TASK])
             print("Done.")
             return True
-        # Method that populates objects of type vimtype
 
-    def GetAllObjs(self,content, vimtype):
-        obj = {}
-        container = content.viewManager.CreateContainerView(content.rootFolder, vimtype, True)
-        for managed_object_ref in container.view:
-            obj.update({managed_object_ref: managed_object_ref.name})
-        return obj
+    # **********************************************************************
 
-    def Get_All_VM(self,content):
-        virtual_machines = self.GetAllObjs(content, [vim.VirtualMachine])
-        if (len(virtual_machines) < 1):
-            print("There are no virtual machines for this host")
-            return None
-        else:
-            _virtual_machines = {}
+    def VMExistInEsxi(self,si, UuidVMs):
+        # checking if all vm are existing in esxi
+        # and return status per every vm
+        statusVM = list()
+        for i in UuidVMs:
+            VM = None
+            VM = si.content.searchIndex.FindByUuid(None, i, True, False)
+            if VM == None:
+                arr = [i, False]
+            else:
+                arr = [i, True]
 
-            for vm in virtual_machines:
-                _ip_address = ""
-                summary = vm.summary
-                if summary.guest is not None:
-                    _ip_address = summary.guest.ipAddress
-                    if _ip_address is None:
-                        _ip_address = ""
-
-                virtual_machine = {
-                    summary.config.name: {
-                        "guest_fullname": summary.config.guestFullName,
-                        "power_state": summary.runtime.powerState,
-                        "ip_address": _ip_address
-                    }
-                }
-
-                _virtual_machines.update(virtual_machine)
-            return _virtual_machines
-
-
-
-
+            statusVM.append(arr)
+        return statusVM
 
 
 
