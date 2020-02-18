@@ -61,6 +61,14 @@ class VMDB:
             print('Successfully Deleted!')
 
 
+    def deleteFromVMDB(self, Name):
+        cursor = connection.connections().getConnection()
+        print('Deleting From Vertual Machines Data Base')
+        SQLTASK = "DELETE FROM VM WHERE Name = ?"
+        with cursor.execute(SQLTASK, Name):
+            print('Successfully Deleted!')
+
+
 
     def readingFromVMDB(self):
         cursor = connection.connections().getConnection()
