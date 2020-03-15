@@ -1,7 +1,4 @@
 import pyodbc
-##############
-Amein Altory
-##############
 
 
 class connections:
