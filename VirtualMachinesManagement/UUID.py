@@ -14,3 +14,4 @@ def generate_uuid():
                 random_string += '-'
         return random_string
 print(generate_uuid())
+
