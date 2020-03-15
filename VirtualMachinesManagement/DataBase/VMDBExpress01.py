@@ -11,7 +11,7 @@ class VMDB:
     connection=connection.connections().getConnection()
     #cursor = connection.connections().getCursor()
 
-
+    #Fetch all Data Base Data
     def fetchAllVMData(self):
         print("VM DATA: ")
         try:
@@ -26,7 +26,7 @@ class VMDB:
 
 
 
-
+    # Insert Data to Data Base
     def InsertVMData(self, Name, VMIP, OS, LifeTime, Owner, Designation):
        # self.cursor = connection.connections().getCursor()
         #self.SQLCommand = ("INSERT INTO VM(Name, VMIP, OS, LifeTime, Owner, Designation) VALUES (?,?,?,?,?,?)")
@@ -46,7 +46,7 @@ class VMDB:
 
 
 
-
+    # Update Data Base Data
     def UpdateVMData(self, Name, VMIP, OS, LifeTime, Owner, Designation):
         cursor = connection.connections().getConnection()
         print('Updating Virtual Machine DataBase...')
@@ -55,7 +55,7 @@ class VMDB:
             print('Successfully Updated!')
 
 
-
+    # Delete Data From Data Base
     def deleteFromVMDBbyID(self, VMID):
         cursor = connection.connections().getConnection()
         print('Deleting From Vertual Machines Data Base')
@@ -72,7 +72,7 @@ class VMDB:
             print('Successfully Deleted!')
 
 
-
+    # Read special Data From Data Base
     def readingFromVMDB(self):
         cursor = connection.connections().getConnection()
         print('Reading data from VM DATABASE table')
@@ -85,7 +85,7 @@ class VMDB:
 
 
 
-
+    # Display Data from begin OR End of the Data Base By Entry
     def Search(self):
         conn = pyodbc.connect('Driver={ODBC Driver 17 for SQL Server}; SERVER=Amin\SQLEXPRESS; Database=VM;Trusted_Connection=yes')
         SQLCommand = "SELECT [VMID], [Name], [VMIP], [OS], [LifeTime], [Owner], [Designation] FROM VM;"
