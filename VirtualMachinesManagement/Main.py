@@ -1,100 +1,98 @@
-import datetime
-import pyVmomi
-import pyVim
+from flask import Flask
+from flask_restful import reqparse, abort, Api, Resource
+from requests import put, get
 from flask import jsonify
-from pyVim.connect import SmartConnect, Disconnect
-from pyVmomi.SoapAdapter import CONNECTION_POOL_IDLE_TIMEOUT_SEC
-import ssl
-from vmwc import VMWareClient
-
-from Manage_Virtual_Machines.VirtualMachinesManagement import ConnectTOserver, viewVM, VM_Delete
-from Manage_Virtual_Machines.VirtualMachinesManagement.CRT import CreateVMtoEsxi
-from Manage_Virtual_Machines.VirtualMachinesManagement.management import Management
-
-import http.server
-import socketserver
-
-#################Server#################################
-
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import time
-
-hostName = "localhost"
-serverPort = 8080
-
-class MyServer(BaseHTTPRequestHandler):
-    REStest=50
-
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET')
-        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
-
-        self.end_headers()
-        self.wfile.write(bytes("[{\"userId\": \"1\",\"id\": \"1\",\"title\": \"suntt\",\"body\": \"quia et suscipit\"}]", "utf-8"))
-
-#######################################################
+import Esxi
 
 
 
-def Main():
-    print("begin")
-#///////////////////////////////////
-    webServer = HTTPServer((hostName, serverPort), MyServer)
-    print("Server started http://%s:%s" % (hostName, serverPort))
 
-    try:
-        webServer.serve_forever()
-    except KeyboardInterrupt:
-        pass
+app = Flask(__name__)
+api = Api(app)
 
-    webServer.server_close()
-    print("Server stopped.")
-#///////////////////////
-    # num=0
-    # #Connect TO server:
-    # ConnectTOserver.ConnectTOserver()
-    # while (num < 5):
-    #     print("---------------------------------------------------")
-    #     print("-- To create a virtual machine press 1           --")
-    #     print("-- To view all virtual machines By User press 2  --")
-    #     print("-- To delete a virtual machine 3                 --")
-    #     print("-- To view available resources, press 4          --")
-    #     print("-- To Exit , Press another key                   --")
-    #     print("---------------------------------------------------")
-    #     num = int(input())
-    #
-    #     # CreateVM:
-    #     if num == 1:
-    #         # C=Management("vm457", "10.0.0.1", "XP", "on",'1024', '15','30')
-    #         # print(C)
-    #         C=CreateVMtoEsxi("root", "192.168.174.139","Amer2020@" , "vm3", 2, 2024, 9)
-    #
-    #     else:
-    #         # view all VM By User:
-    #         if num == 2:
-    #             viewVM.view_vm_by_name("192.168.174.139", "root", "Amer2020@")
-    #
-    #         else:
-    #             # Delet vm_by name:
-    #             if num == 3:
-    #                 Name = input("Type a virtual machine name to delete : ")
-    #                 VM_Delete.delete_vm_by_name("192.168.174.139", "root", "Amer2020@", Name)
-    #
-    #             else:
-    #                 #view available resources:
-    #                 if num == 4:
-    #                     print("Resources TO DO!!")
-    #
-    #                 else:
-    #                     # Exit:
-    #                     break
-    #
-    #
 
-    print("end")
 
-Main()
+#viewVMs
+GetAllVMS = Esxi.viewAllVM("192.168.174.139", "root", "Amer2020@")
+VirtualMachines={'VMS1':GetAllVMS}
+
+
+##########################
+def abort_if_ViewVM_doesnt_exist(ViewVM_id):
+    if ViewVM_id not in VirtualMachines:
+        abort(404, message="VM {} doesn't exist".format(ViewVM_id))
+
+parser = reqparse.RequestParser()
+
+parser.add_argument('vmname')
+parser.add_argument('cpus')
+parser.add_argument('ramMB')
+parser.add_argument('disksizeGB')
+parser.add_argument('OS')
+
+
+# shows a single VM item
+class VM(Resource):
+    def get(self, ViewVM_id):
+        abort_if_ViewVM_doesnt_exist(ViewVM_id)
+        return VirtualMachines[ViewVM_id]
+
+
+
+# shows a list of all ViewVM, and lets you POST to add new VMSs
+class VMS(Resource):
+    def get(self):
+        return VirtualMachines
+
+    def post(self):
+        args = parser.parse_args()
+        ViewVM_id = int(max(VirtualMachines.keys()).lstrip('VMS')) + 1
+        ViewVM_id = 'VMS%i' % ViewVM_id
+
+        VirtualMachines[ViewVM_id] = { 'vmname': args['vmname'], 'OS': args['OS'], 'cpus': args['cpus'],
+                                      'ramMB': args['ramMB'],'disksizeGB': args['disksizeGB']}
+        Esxi.CreateVMtoEsxi('root', '192.168.174.139', 'Amer', args['vmname'], int(args['cpus']),
+                       int(args['ramMB']) , int(args['disksizeGB']))
+
+        return VirtualMachines[ViewVM_id], 201
+
+###
+def abort_if_DeletVM_doesnt_exist(DeletVM_id):
+    if DeletVM_id not in VirtualMachines:
+        abort(404, message="VMS {} doesn't exist".format(DeletVM_id))
+
+class DeleteVM(Resource):
+
+    def delete(self, DeletVM_id,vmnames):
+        abort_if_DeletVM_doesnt_exist(DeletVM_id)
+        print('DeletVM_name:',vmnames)
+        Esxi.delete_vm_by_name('192.168.174.139', 'root', 'Amer2020@', vmnames)
+        del VirtualMachines[DeletVM_id]
+        return '', 204
+
+
+###
+
+
+## Actually setup the Api resource routing here
+api.add_resource(VMS, '/VMS')
+api.add_resource(VM, '/VMS/<ViewVM_id>')
+api.add_resource(DeleteVM, '/VMS/<DeletVM_id>/<vmnames>')
+
+#if __name__ == '__main__':
+app.run(debug=True)
+
+
+#http://127.0.0.1:5000/
+
+# View All VMS:
+#http://localhost:5000/VMS
+
+# view_vm_by_name:
+#http://localhost:5000/VMS/VMS1
+
+# Creat new VM:
+#http://localhost:5000/VMS?vmname=VMlinux&cpus=2&ramMB=1024&disksizeGB=3&OS=linux
+
+# Delete VM:
+#http://localhost:5000/VMS/VMS2/VMlinux
